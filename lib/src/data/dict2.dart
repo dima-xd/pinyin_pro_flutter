@@ -420,6 +420,7 @@ const Map<String, String> _dict2Data = {
   '剂量': 'jì liàng',
   '道长': 'dào zhǎng',
   '泄露': 'xiè lòu',
+  '谢谢': 'xiè xie',
   '王八': 'wáng ba',
   '切割': 'qiē gē',
   '间隔': 'jiàn gé',
