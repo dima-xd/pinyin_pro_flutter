@@ -331,6 +331,13 @@ const Map<String, String> _dict3Data = {
   '干哪行': 'gàn nǎ háng',
   '干一行': 'gàn yì háng',
   '曲别针': 'qū bié zhēn',
+  '不由得': 'bù yóu de',
+  '老太太': 'lǎo tài tai',
+  '老头子': 'lǎo tóu zi',
+  '两口子': 'liǎng kǒu zi',
+  '小伙子': 'xiǎo huǒ zi',
+  '一辈子': 'yī bèi zi',
+  '胡萝卜': 'hú luó bo',
 };
 
 /// Builds patterns for 3-character words in dict3.
