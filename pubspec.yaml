@@ -1,0 +1,20 @@
+name: pinyin_pro_flutter
+description: >-
+  A professional Chinese pinyin conversion library for Flutter/Dart.
+  Supports tone marks, multiple readings, text matching, HTML generation,
+  and custom dictionaries.
+version: 1.0.0
+homepage: https://github.com/zh-lx/pinyin-pro
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
