@@ -3,7 +3,7 @@ description: >-
   A professional Chinese pinyin conversion library for Dart and Flutter.
   Supports tone marks, multiple readings, text matching, HTML generation,
   and custom dictionaries.
-version: 1.0.3
+version: 1.1.0
 homepage: https://github.com/dima-xd/pinyin_pro_flutter
 topics:
   - pinyin

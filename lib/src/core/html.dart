@@ -30,7 +30,7 @@ class HtmlOptions {
   final bool rp;
 
   final ToneType toneType;
-  final bool toneSandhi;
+  final Object? toneSandhi;
   final SurnameMode surname;
   final bool traditional;
   final bool v;

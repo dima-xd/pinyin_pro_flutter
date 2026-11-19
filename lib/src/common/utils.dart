@@ -3,6 +3,8 @@ library;
 /// Splits a string into a list of characters, treating surrogate pairs
 /// (emoji, supplementary CJK) as single units.
 List<String> splitString(String text) {
+  if (!_hasHighSurrogate(text)) return text.split('');
+
   final result = <String>[];
   var i = 0;
   final units = text.codeUnits;
@@ -21,6 +23,13 @@ List<String> splitString(String text) {
     i++;
   }
   return result;
+}
+
+bool _hasHighSurrogate(String text) {
+  for (final unit in text.codeUnits) {
+    if (unit >= 0xD800 && unit <= 0xDBFF) return true;
+  }
+  return false;
 }
 
 /// Returns the logical character length of [text], counting surrogate pairs

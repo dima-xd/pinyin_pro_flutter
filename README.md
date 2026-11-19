@@ -1,6 +1,6 @@
 # pinyin_pro_flutter
 
-A professional Chinese pinyin conversion library for Dart and Flutter — a full port of [pinyin-pro](https://github.com/zh-lx/pinyin-pro) (TypeScript, v3.28.1).
+A professional Chinese pinyin conversion library for Dart and Flutter — a full port of [pinyin-pro](https://github.com/zh-lx/pinyin-pro) (TypeScript, v3.29.5).
 
 > **Note:** This project was developed with AI assistance.
 
@@ -10,7 +10,7 @@ A professional Chinese pinyin conversion library for Dart and Flutter — a full
 
 - Tone marks (symbols or numeric) and tone-free output
 - Multi-reading (polyphonic) characters
-- Tone sandhi (变调) for 一 and 不
+- Tone sandhi (变调) for 一 and 不, with opt-in consecutive third-tone sandhi
 - Surname mode (姓氏模式)
 - Text-pinyin fuzzy matching
 - HTML ruby markup generation
@@ -102,6 +102,11 @@ pinyin('曾小贤', options: PinyinOptions(surname: SurnameMode.head));
 pinyin('一路顺风', options: PinyinOptions(toneSandhi: true));
 // 'yí lù shùn fēng'
 
+// Consecutive third-tone sandhi (opt-in)
+pinyin('你好', options: PinyinOptions(
+  toneSandhi: ToneSandhiOptions(thirdTone: true),
+)); // 'ní hǎo'
+
 // All data per character
 pinyin('好', options: PinyinOptions(returnType: PinyinReturnType.all));
 // [PinyinAllData(origin: '好', pinyin: 'hǎo', ...)]
@@ -135,7 +140,7 @@ pinyinAll('汉').first.pinyin; // 'hàn'
 | `separator` | `String` | `' '` | Syllable separator |
 | `multiple` | `bool` | `false` | Return all readings (single char only) |
 | `surname` | `SurnameMode` | `off` | `off`, `head`, `all` |
-| `toneSandhi` | `bool` | `true` | Apply tone sandhi for 一/不 |
+| `toneSandhi` | `Object?` | `true` | `true`/`false`, or `ToneSandhiOptions` |
 | `nonZh` | `NonZhMode` | `spaced` | `spaced`, `consecutive`, `removed` |
 | `nonZhScope` | `RegExp?` | `null` | Regex scope for non-Chinese processing |
 | `v` | `bool` | `false` | Replace ü with v |
@@ -143,6 +148,26 @@ pinyinAll('汉').first.pinyin; // 'hàn'
 | `initialPattern` | `InitialPattern?` | `null` | `yw` or `standard` handling of y/w |
 | `traditional` | `bool` | `false` | Recognize traditional characters |
 | `segmentit` | `TokenizationAlgorithm` | `maxProbability` | `maxProbability`, `reverseMaxMatch`, `minTokenization` |
+
+**`ToneSandhiOptions`**
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `yi` | `bool` | `true` | Apply 一 tone sandhi |
+| `bu` | `bool` | `true` | Apply 不 tone sandhi |
+| `thirdTone` | `bool` | `false` | Turn the first of exactly two consecutive third tones into the second tone |
+
+```dart
+pinyin('一把', options: PinyinOptions(
+  toneSandhi: ToneSandhiOptions(yi: false),
+)); // 'yī bǎ'
+
+pinyin('一把不是', options: PinyinOptions(
+  toneSandhi: ToneSandhiOptions(bu: false),
+)); // 'yì bǎ bù shì'
+```
+
+A plain `bool` keeps the legacy semantics: `true` enables only 一/不 sandhi and `false` disables all sandhi.
 
 ---
 
@@ -154,6 +179,9 @@ Fuzzy-matches a pinyin query against Chinese text. Returns matched character ind
 matchPinyin('中文拼音', 'zwp');  // [0, 1, 2]
 matchPinyin('中文拼音', 'zw');   // [0, 1]
 matchPinyin('中文拼音', 'xyz');  // null
+
+// Replace ü with a custom character while matching
+matchPinyin('吕', 'lü', options: MatchOptions(v: 'u')); // [0]
 ```
 
 **`MatchOptions`**
@@ -165,7 +193,7 @@ matchPinyin('中文拼音', 'xyz');  // null
 | `space` | `MatchSpace` | `ignore` | `ignore` or `preserve` spaces in the query |
 | `lastPrecision` | `MatchPrecision` | `start` | Precision used for the last character |
 | `insensitive` | `bool` | `true` | Case-insensitive matching |
-| `v` | `bool` | `false` | Treat ü as v in the query |
+| `v` | `Object?` | `false` | `true` replaces ü with v; a string replaces ü with that string |
 
 ---
 
@@ -205,7 +233,7 @@ htmlPinyin('汉字');
 | `customClassMap` | `Map<String, List<String>>` | `{}` | Extra classes keyed by class name, per character |
 | `rp` | `bool` | `true` | Include `<rp>(</rp>` fallback tags |
 | `toneType` | `ToneType` | `symbol` | Tone format |
-| `toneSandhi` | `bool` | `true` | Apply tone sandhi for 一/不 |
+| `toneSandhi` | `Object?` | `true` | `true`/`false`, or `ToneSandhiOptions` |
 | `surname` | `SurnameMode` | `off` | Surname matching mode |
 | `traditional` | `bool` | `false` | Recognize traditional characters |
 | `v` | `bool` | `false` | Replace ü with v |
@@ -302,7 +330,7 @@ segmentPinyinString('我是中国人'); // 'wǒ shì zhōng guó rén'
 | `nonZh` | `NonZhMode` | `spaced` | How to handle non-Chinese characters |
 | `v` | `bool` | `false` | Replace ü with v |
 | `separator` | `String` | `' '` | Separator used by `*String` formats |
-| `toneSandhi` | `bool` | `true` | Apply tone sandhi for 一/不 |
+| `toneSandhi` | `Object?` | `true` | `true`/`false`, or `ToneSandhiOptions` |
 | `segmentit` | `TokenizationAlgorithm` | `maxProbability` | Tokenization algorithm |
 | `format` | `OutputFormat` | `allSegment` | Output format |
 | `traditional` | `bool` | `false` | Recognize traditional characters |
@@ -380,4 +408,4 @@ getAllPinyin('好');          // ['hǎo', 'hào']
 
 ## Origin
 
-This library is a Dart/Flutter port of [pinyin-pro](https://github.com/zh-lx/pinyin-pro) by [zh-lx](https://github.com/zh-lx), a professional Chinese pinyin library for JavaScript/TypeScript. All core algorithms (Aho-Corasick automaton, maximum probability segmentation, tone sandhi rules) and dictionaries are ported from the original.
+This library is a Dart/Flutter port of [pinyin-pro](https://github.com/zh-lx/pinyin-pro) by [zh-lx](https://github.com/zh-lx), a professional Chinese pinyin library for JavaScript/TypeScript. The port tracks upstream v3.29.5. All core algorithms (Aho-Corasick automaton, maximum probability segmentation, tone sandhi rules) and dictionaries are ported from the original.

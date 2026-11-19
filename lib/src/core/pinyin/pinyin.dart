@@ -7,6 +7,36 @@ import 'package:pinyin_pro_flutter/src/common/utils.dart';
 import 'package:pinyin_pro_flutter/src/core/pinyin/handle.dart';
 import 'package:pinyin_pro_flutter/src/core/pinyin/middlewares.dart';
 
+/// Fine-grained control over tone sandhi (变调).
+///
+/// Pass an instance as [PinyinOptions.toneSandhi] to control each rule
+/// independently. A plain `bool` keeps the legacy behaviour: `true` enables
+/// only 一/不 sandhi, `false` disables all sandhi.
+///
+/// Example:
+/// ```dart
+/// pinyin('你好', options: PinyinOptions(
+///   toneSandhi: ToneSandhiOptions(thirdTone: true),
+/// )); // 'ní hǎo'
+/// ```
+class ToneSandhiOptions {
+  /// Whether to apply tone sandhi for 一. Defaults to true.
+  final bool yi;
+
+  /// Whether to apply tone sandhi for 不. Defaults to true.
+  final bool bu;
+
+  /// Whether to turn the first of exactly two consecutive third tones into
+  /// the second tone (e.g. 你好 → ní hǎo). Defaults to false.
+  final bool thirdTone;
+
+  const ToneSandhiOptions({
+    this.yi = true,
+    this.bu = true,
+    this.thirdTone = false,
+  });
+}
+
 /// Configuration for the [pinyin] function.
 class PinyinOptions {
   /// Tone display format. Defaults to [ToneType.symbol].
@@ -27,8 +57,13 @@ class PinyinOptions {
   /// Surname matching mode.
   final SurnameMode surname;
 
-  /// Whether to apply tone sandhi (变调) for 一 and 不. Defaults to true.
-  final bool toneSandhi;
+  /// Tone sandhi (变调) control. Defaults to `true`.
+  ///
+  /// - `true`: apply 一/不 sandhi only (legacy behaviour).
+  /// - `false`: disable all sandhi.
+  /// - [ToneSandhiOptions]: control 一, 不, and consecutive third tones
+  ///   independently.
+  final Object? toneSandhi;
 
   /// How to handle non-Chinese characters.
   final NonZhMode nonZh;
@@ -75,7 +110,7 @@ class PinyinOptions {
     String? separator,
     bool? multiple,
     SurnameMode? surname,
-    bool? toneSandhi,
+    Object? toneSandhi,
     NonZhMode? nonZh,
     RegExp? nonZhScope,
     bool? v,
@@ -141,7 +176,8 @@ dynamic pinyin(String word, {PinyinOptions options = const PinyinOptions()}) {
     opts = opts.copyWith(toneType: ToneType.none);
   }
 
-  final listBuffer = List<SingleWordResult?>.filled(stringLength(word), null);
+  final zhChars = splitString(word);
+  final listBuffer = List<SingleWordResult?>.filled(zhChars.length, null);
 
   var (:list, :matches) = getPinyin(
     word,
@@ -149,6 +185,7 @@ dynamic pinyin(String word, {PinyinOptions options = const PinyinOptions()}) {
     opts.surname,
     opts.segmentit,
     traditional: opts.traditional,
+    zhChars: zhChars,
   );
 
   list = middlewareToneSandhi(list, opts.toneSandhi);

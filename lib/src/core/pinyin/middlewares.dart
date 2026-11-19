@@ -48,7 +48,7 @@ List<SingleWordResult> middlewareNonZh(
 /// all readings; otherwise returns null.
 List<SingleWordResult>? middlewareMultiple(
     String word, PinyinOptions options) {
-  if (stringLength(word) == 1 && options.multiple) {
+  if (options.multiple && stringLength(word) == 1) {
     return getMultiplePinyin(word, options.surname);
   }
   return null;
@@ -132,16 +132,88 @@ void middlewareV(List<SingleWordResult> list, PinyinOptions options) {
 
 // ─── toneSandhi middleware ────────────────────────────────────────────────────
 
-/// Handles tone sandhi (变调) for 一 and 不.
+const _thirdToneToSecondTone = <String, String>{
+  'ǎ': 'á',
+  'ǒ': 'ó',
+  'ě': 'é',
+  'ǐ': 'í',
+  'ǔ': 'ú',
+  'ǚ': 'ǘ',
+  'ň': 'ń',
+  'm̌': 'ḿ',
+  'ê̌': 'ế',
+};
+
+// Lightweight third-tone detection: avoids running the full tone classifier
+// on the default hot path.
+final _thirdTonePattern = RegExp('ǎ|ǒ|ě|ǐ|ǔ|ǚ|ň|m̌|ê̌');
+
+bool _isThirdTone(SingleWordResult item) =>
+    item.isZh && _thirdTonePattern.hasMatch(item.result);
+
+String _convertThirdToneToSecondTone(String pinyin) {
+  return pinyin.replaceFirstMapped(
+    _thirdTonePattern,
+    (match) => _thirdToneToSecondTone[match[0]!]!,
+  );
+}
+
+void _applyThirdToneSandhi(List<SingleWordResult> list) {
+  var start = 0;
+  while (start < list.length) {
+    if (!_isThirdTone(list[start])) {
+      start += 1;
+      continue;
+    }
+
+    var end = start + 1;
+    while (end < list.length && _isThirdTone(list[end])) {
+      end += 1;
+    }
+
+    if (end - start == 2) {
+      final pinyin = _convertThirdToneToSecondTone(list[start].result);
+      list[start].result = pinyin;
+      list[start].originPinyin = pinyin;
+    }
+
+    start = end;
+  }
+}
+
+({bool yi, bool bu, bool thirdTone}) _resolveToneSandhi(Object? toneSandhi) {
+  if (toneSandhi == false) {
+    return (yi: false, bu: false, thirdTone: false);
+  }
+  if (toneSandhi is ToneSandhiOptions) {
+    return (
+      yi: toneSandhi.yi,
+      bu: toneSandhi.bu,
+      thirdTone: toneSandhi.thirdTone,
+    );
+  }
+  return (yi: true, bu: true, thirdTone: false);
+}
+
+/// Handles tone sandhi (变调) for 一, 不, and optionally consecutive third
+/// tones.
 ///
-/// When [toneSandhi] is false, resets them to their base tones.
+/// [toneSandhi] accepts a `bool` (legacy behaviour) or
+/// [ToneSandhiOptions]. When 一/不 sandhi is disabled, those characters are
+/// reset to their base tones.
 List<SingleWordResult> middlewareToneSandhi(
-    List<SingleWordResult> list, bool toneSandhi) {
-  if (!toneSandhi) {
+    List<SingleWordResult> list, Object? toneSandhi) {
+  final (:yi, :bu, :thirdTone) = _resolveToneSandhi(toneSandhi);
+
+  if (thirdTone) {
+    _applyThirdToneSandhi(list);
+  }
+
+  if (!yi || !bu) {
     for (final item in list) {
-      if (item.origin == '一') {
+      if (!yi && item.origin == '一') {
         item.result = item.originPinyin = 'yī';
-      } else if (item.origin == '不') {
+      } else if (!bu && item.origin == '不') {
         item.result = item.originPinyin = 'bù';
       }
     }
@@ -172,7 +244,7 @@ dynamic middlewareType(
         final py = item.isZh ? item.result : '';
         final (:initial, :final_) =
             getInitialAndFinal(py, options.initialPattern);
-        final (:head, :body, :tail) = getFinalParts(py);
+        final (:head, :body, :tail) = getFinalPartsFromFinal(final_);
         final List<String> poly;
         if (py.isNotEmpty) {
           final others = getAllPinyin(item.origin, options.surname)

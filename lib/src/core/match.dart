@@ -1,11 +1,27 @@
 // ignore_for_file: lines_longer_than_80_chars
 library;
 
-import 'package:pinyin_pro_flutter/src/common/types.dart';
 import 'package:pinyin_pro_flutter/src/common/utils.dart';
-import 'package:pinyin_pro_flutter/src/core/pinyin/pinyin.dart';
+import 'package:pinyin_pro_flutter/src/core/pinyin/handle.dart';
 
 const int _maxPinyinLength = 6;
+
+bool _isVEnabled(Object? v) => v == true || (v is String && v.isNotEmpty);
+
+String _vReplacement(Object? v) => v is String ? v : 'v';
+
+/// Returns the tone-free readings of [char], with ü optionally replaced.
+List<String> _getMatchPinyin(String char, MatchOptions options) {
+  final readings = getAllPinyin(char);
+  final pinyins = readings.isNotEmpty ? readings : [char];
+  final replaceV = _isVEnabled(options.v);
+  final replacement = _vReplacement(options.v);
+
+  return pinyins.map((pinyin) {
+    final withoutTone = getPinyinWithoutTone(pinyin);
+    return replaceV ? withoutTone.replaceAll('ü', replacement) : withoutTone;
+  }).toList();
+}
 
 /// Options for [matchPinyin].
 class MatchOptions {
@@ -24,8 +40,11 @@ class MatchOptions {
   /// Case-insensitive matching. Defaults to true.
   final bool insensitive;
 
-  /// Replace ü with v before matching. Defaults to false.
-  final bool v;
+  /// Replace ü before matching. Defaults to false.
+  ///
+  /// `true` replaces ü with `v`; a non-empty string replaces ü with that
+  /// string instead.
+  final Object? v;
 
   const MatchOptions({
     this.precision = MatchPrecision.first,
@@ -91,8 +110,8 @@ List<int>? matchPinyin(
     );
   }
 
-  if (opts.v) {
-    query = query.replaceAll('ü', 'v');
+  if (_isVEnabled(opts.v)) {
+    query = query.replaceAll('ü', _vReplacement(opts.v));
   }
 
   var t = text;
@@ -138,14 +157,7 @@ List<int>? _matchAny(String text, String query, MatchOptions options) {
       result.add(i);
       continue;
     }
-    final ps = (pinyin(words[i],
-            options: PinyinOptions(
-              toneType: ToneType.none,
-              multiple: true,
-              returnType: PinyinReturnType.array,
-              v: options.v,
-            )) as List)
-        .cast<String>();
+    final ps = _getMatchPinyin(words[i], options);
 
     var currentLength = 0;
     for (final p in ps) {
@@ -197,19 +209,13 @@ List<int>? _matchAboveStart(
       }
     }
 
+    List<String>? muls;
     for (var j = 1; j <= query.length; j++) {
       final prev = dp[i - 1][j - 1];
       if (prev == null) continue;
       if (j != 1 && prev.isEmpty) continue;
 
-      final muls = (pinyin(words[i - 1],
-              options: PinyinOptions(
-                returnType: PinyinReturnType.array,
-                toneType: ToneType.none,
-                multiple: true,
-                v: options.v,
-              )) as List)
-          .cast<String>();
+      muls ??= _getMatchPinyin(words[i - 1], options);
 
       // Non-Chinese direct character match.
       if (j <= query.length && words[i - 1] == query[j - 1]) {

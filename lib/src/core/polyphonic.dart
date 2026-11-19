@@ -223,7 +223,7 @@ dynamic _handleType(List<SingleWordResult> list, PolyphonicOptions options) {
         final py = item.isZh ? item.result : '';
         final (:initial, :final_) =
             getInitialAndFinal(py, options.initialPattern);
-        final (:head, :body, :tail) = getFinalParts(py);
+        final (:head, :body, :tail) = getFinalPartsFromFinal(final_);
         return PolyphonicAllData(
           origin: item.origin,
           pinyin: py,

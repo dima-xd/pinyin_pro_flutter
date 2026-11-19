@@ -45,7 +45,7 @@ class SegmentOptions {
   final NonZhMode nonZh;
   final bool v;
   final String separator;
-  final bool toneSandhi;
+  final Object? toneSandhi;
   final TokenizationAlgorithm segmentit;
   final OutputFormat format;
   final bool traditional;
@@ -68,7 +68,7 @@ class SegmentOptions {
     NonZhMode? nonZh,
     bool? v,
     String? separator,
-    bool? toneSandhi,
+    Object? toneSandhi,
     TokenizationAlgorithm? segmentit,
     OutputFormat? format,
     bool? traditional,
@@ -116,7 +116,8 @@ dynamic segmentPinyin(String word, {SegmentOptions options = const SegmentOption
   if (word.isEmpty) return word;
 
   final surname = options.surname;
-  final listBuffer = List<SingleWordResult?>.filled(stringLength(word), null);
+  final zhChars = splitString(word);
+  final listBuffer = List<SingleWordResult?>.filled(zhChars.length, null);
 
   var (:list, :matches) = getPinyin(
     word,
@@ -124,6 +125,7 @@ dynamic segmentPinyin(String word, {SegmentOptions options = const SegmentOption
     surname,
     options.segmentit,
     traditional: options.traditional,
+    zhChars: zhChars,
   );
 
   list = middlewareToneSandhi(list, options.toneSandhi);

@@ -18,7 +18,9 @@ import 'package:pinyin_pro_flutter/src/data/surname.dart';
 String getSingleWordPinyin(String char) {
   final pinyin = dict1.get(char);
   if (pinyin == null) return char;
-  return pinyin.split(' ')[0];
+
+  final index = pinyin.indexOf(' ');
+  return index == -1 ? pinyin : pinyin.substring(0, index);
 }
 
 String _getTraditionalWords(String word) {
@@ -47,23 +49,33 @@ String _getTraditionalWords(String word) {
   SurnameMode surname,
   TokenizationAlgorithm segmentit, {
   bool? traditional,
+  List<String>? zhChars,
 }) {
+  final chars = zhChars ?? splitString(word);
   final searchWord =
       traditional == true ? _getTraditionalWords(word) : word;
-  final matches = acTree.search(searchWord, surname, algorithm: segmentit);
+  final searchChars =
+      traditional == true ? splitString(searchWord) : chars;
+  final matches = acTree.search(
+    searchWord,
+    surname,
+    algorithm: segmentit,
+    zhChars: searchChars,
+  );
   var matchIndex = 0;
-  final zhChars = splitString(word);
+  final processFuncs = _getProcessFuncs(word);
 
-  for (var i = 0; i < zhChars.length;) {
+  for (var i = 0; i < chars.length;) {
     final match = matchIndex < matches.length ? matches[matchIndex] : null;
     if (match != null && i == match.index) {
       if (match.length == 1 && match.priority <= kPriorityNormal) {
-        final char = zhChars[i];
+        final char = chars[i];
         match.zh = char;
         final pinyin = _processSpecialPinyin(
           char,
-          i > 0 ? zhChars[i - 1] : null,
-          i + 1 < zhChars.length ? zhChars[i + 1] : null,
+          i > 0 ? chars[i - 1] : null,
+          i + 1 < chars.length ? chars[i + 1] : null,
+          processFuncs,
         );
         list[i] = SingleWordResult(
           origin: char,
@@ -77,12 +89,12 @@ String _getTraditionalWords(String word) {
       }
       final pinyins = match.pinyin.split(' ');
       if (traditional == true) {
-        match.zh = zhChars.sublist(match.index, match.index + match.length).join();
+        match.zh = chars.sublist(match.index, match.index + match.length).join();
       }
       for (var j = 0; j < match.length; j++) {
         final pinyinForChar = j < pinyins.length ? pinyins[j] : '';
         list[i + j] = SingleWordResult(
-          origin: zhChars[j + match.index],
+          origin: chars[j + match.index],
           result: pinyinForChar,
           isZh: true,
           originPinyin: pinyinForChar,
@@ -91,11 +103,12 @@ String _getTraditionalWords(String word) {
       i += match.length;
       matchIndex++;
     } else {
-      final char = zhChars[i];
+      final char = chars[i];
       final pinyin = _processSpecialPinyin(
         char,
-        i > 0 ? zhChars[i - 1] : null,
-        i + 1 < zhChars.length ? zhChars[i + 1] : null,
+        i > 0 ? chars[i - 1] : null,
+        i + 1 < chars.length ? chars[i + 1] : null,
+        processFuncs,
       );
       list[i] = SingleWordResult(
         origin: char,
@@ -123,9 +136,14 @@ String getPinyinWithoutTone(String pinyin) {
       .replaceAll(RegExp('[\u016B\u00FA\u01D4\u00F9]'), 'u')
       .replaceAll(RegExp('[\u01D6\u01D8\u01DA\u01DC]'), 'ü')
       .replaceAll(RegExp('[\u0144\u0148\u01F9]'), 'n')
+      .replaceAll('n\u0304', 'n')
       .replaceAll('\u1E3F', 'm')
+      .replaceAll('m\u0304', 'm')
+      .replaceAll('m\u030C', 'm')
+      .replaceAll('m\u0300', 'm')
       .replaceAll(RegExp('[\u1EBF\u1EC1]'), 'ê')
-      .replaceAll(RegExp('[\u0304\u030C]'), '');
+      .replaceAll('ê\u0304', 'ê')
+      .replaceAll('ê\u030C', 'ê');
 }
 
 /// Returns all possible pinyin readings for [char].
@@ -210,9 +228,9 @@ List<SingleWordResult> getMultiplePinyin(
   );
 }
 
-/// Returns the head, body, and tail components of the final (韵母).
-({String head, String body, String tail}) getFinalParts(String pinyin) {
-  final (:initial, :final_) = getInitialAndFinal(pinyin);
+/// Returns the head, body, and tail components of a final (韵母).
+({String head, String body, String tail}) getFinalPartsFromFinal(
+    String final_) {
   String head = '', body = '', tail = '';
   final plain = getPinyinWithoutTone(final_);
   if (kDoubleFinalList.contains(plain)) {
@@ -224,6 +242,13 @@ List<SingleWordResult> getMultiplePinyin(
     tail = final_.length > 1 ? final_.substring(1) : '';
   }
   return (head: head, body: body, tail: tail);
+}
+
+/// Returns the head, body, and tail components of the final (韵母) in
+/// [pinyin].
+({String head, String body, String tail}) getFinalParts(String pinyin) {
+  final (:initial, :final_) = getInitialAndFinal(pinyin);
+  return getFinalPartsFromFinal(final_);
 }
 
 /// Returns the tone number (0–4) for each syllable in [pinyin].
@@ -336,9 +361,28 @@ String? _processReduplicationChar(String cur, String? pre) {
   return null;
 }
 
-String _processSpecialPinyin(String cur, String? pre, String? next) {
-  return _processReduplicationChar(cur, pre) ??
-      _processToneSandhiLiao(cur, pre) ??
-      processToneSandhi(cur, pre, next) ??
-      getSingleWordPinyin(cur);
+typedef _SpecialPinyinProcessor = String? Function(
+    String cur, String? pre, String? next);
+
+List<_SpecialPinyinProcessor> _getProcessFuncs(String text) {
+  final funcs = <_SpecialPinyinProcessor>[];
+  if (text.contains('々')) {
+    funcs.add((cur, pre, next) => _processReduplicationChar(cur, pre));
+  }
+  funcs.add((cur, pre, next) => _processToneSandhiLiao(cur, pre));
+  funcs.add(processToneSandhi);
+  return funcs;
+}
+
+String _processSpecialPinyin(
+  String cur,
+  String? pre,
+  String? next,
+  List<_SpecialPinyinProcessor> funcs,
+) {
+  for (final func in funcs) {
+    final result = func(cur, pre, next);
+    if (result != null) return result;
+  }
+  return getSingleWordPinyin(cur);
 }

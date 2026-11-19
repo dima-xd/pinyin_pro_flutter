@@ -44,6 +44,7 @@ export 'src/common/segmentit/ac_automaton.dart' show TokenizationAlgorithm;
 export 'src/core/pinyin/pinyin.dart'
     show
         PinyinOptions,
+        ToneSandhiOptions,
         pinyin,
         pinyinString,
         pinyinArray,

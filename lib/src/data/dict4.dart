@@ -67,6 +67,7 @@ const Map<String, String> _dict4Data = {
   '百里挑一': 'bǎi lǐ tiāo yī',
   '整齐划一': 'zhěng qí huà yī',
   '一来二去': 'yī lái èr qù',
+  '一丁点儿': 'yī dīng diǎn er',
   '一路公交': 'yī lù gōng jiāo',
   '一路汽车': 'yī lù qì chē',
   '一路巴士': 'yī lù bā shì',

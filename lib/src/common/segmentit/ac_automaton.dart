@@ -76,13 +76,11 @@ class TrieNode {
   final Map<String, TrieNode> children = {};
   TrieNode? fail;
   final List<Pattern> patterns = [];
-  final String prefix;
   final TrieNode? parent;
   final String key;
 
   TrieNode({
     required this.parent,
-    this.prefix = '',
     this.key = '',
   });
 }
@@ -93,9 +91,28 @@ class AcAutomaton {
   final Map<String, Set<Pattern>> _dictMap = {};
   // queues[depth] = list of nodes at that depth (for BFS fail pointer build)
   final List<List<TrieNode>> _queues = [];
+  void Function()? _pendingBuild;
+
+  /// Defers a rebuild until the next [build] or [match].
+  void setPendingBuild(void Function() build) {
+    _pendingBuild = build;
+  }
+
+  /// Cancels a scheduled rebuild.
+  void clearPendingBuild() {
+    _pendingBuild = null;
+  }
+
+  void _flushPendingBuild() {
+    final build = _pendingBuild;
+    if (build == null) return;
+    _pendingBuild = null;
+    build();
+  }
 
   /// Builds the trie and fail pointers from [patternList].
   void build(List<Pattern> patternList) {
+    _flushPendingBuild();
     _buildTrie(patternList);
     _buildFailPointers();
   }
@@ -106,13 +123,13 @@ class AcAutomaton {
       var cur = _root;
       for (var i = 0; i < chars.length; i++) {
         final c = chars[i];
-        if (!cur.children.containsKey(c)) {
-          final prefix = chars.sublist(0, i).join('');
-          final node = TrieNode(parent: cur, prefix: prefix, key: c);
-          cur.children[c] = node;
-          _addNodeToQueues(node);
+        var next = cur.children[c];
+        if (next == null) {
+          next = TrieNode(parent: cur, key: c);
+          cur.children[c] = next;
+          _addNodeToQueues(next, i + 1);
         }
-        cur = cur.children[c]!;
+        cur = next;
       }
       _insertPattern(cur.patterns, pattern);
       pattern.node = cur;
@@ -121,35 +138,30 @@ class AcAutomaton {
   }
 
   void _buildFailPointers() {
-    final queue = <TrieNode>[];
-    for (final q in _queues) {
-      queue.addAll(q);
+    for (var depth = 1; depth < _queues.length; depth++) {
+      final queue = _queues[depth];
+      for (final node in queue) {
+        var failNode = node.parent?.fail;
+        final key = node.key;
+
+        while (failNode != null && !failNode.children.containsKey(key)) {
+          failNode = failNode.fail;
+        }
+        if (failNode == null) {
+          node.fail = _root;
+        } else {
+          node.fail = failNode.children[key];
+        }
+      }
     }
     _queues.clear();
-
-    var queueIndex = 0;
-    while (queueIndex < queue.length) {
-      final node = queue[queueIndex++];
-      var failNode = node.parent?.fail;
-      final key = node.key;
-
-      while (failNode != null && !failNode.children.containsKey(key)) {
-        failNode = failNode.fail;
-      }
-      if (failNode == null) {
-        node.fail = _root;
-      } else {
-        node.fail = failNode.children[key];
-      }
-    }
   }
 
   void _addPatternToDictMap(Pattern pattern) {
     _dictMap.putIfAbsent(pattern.dict, () => {}).add(pattern);
   }
 
-  void _addNodeToQueues(TrieNode node) {
-    final depth = stringLength(node.prefix);
+  void _addNodeToQueues(TrieNode node, int depth) {
     while (_queues.length <= depth) {
       _queues.add([]);
     }
@@ -200,20 +212,27 @@ class AcAutomaton {
   }
 
   /// Matches [text] against all patterns and returns raw hits.
-  List<MatchPattern> match(String text, SurnameMode surname) {
+  List<MatchPattern> match(
+    String text,
+    SurnameMode surname, {
+    List<String>? zhChars,
+  }) {
+    _flushPendingBuild();
     var cur = _root;
     final result = <MatchPattern>[];
-    final chars = splitString(text);
+    final chars = zhChars ?? splitString(text);
 
     for (var i = 0; i < chars.length; i++) {
       final c = chars[i];
+      var next = cur.children[c];
 
-      while (cur != _root && !cur.children.containsKey(c)) {
+      while (next == null && !identical(cur, _root)) {
         cur = cur.fail ?? _root;
+        next = cur.children[c];
       }
 
-      if (cur.children.containsKey(c)) {
-        cur = cur.children[c]!;
+      if (next != null) {
+        cur = next;
         final pattern = _findPattern(cur.patterns, surname, i);
         if (pattern != null) {
           result.add(MatchPattern.from(pattern, i - pattern.length + 1));
@@ -250,15 +269,17 @@ class AcAutomaton {
     String text,
     SurnameMode surname, {
     TokenizationAlgorithm algorithm = TokenizationAlgorithm.maxProbability,
+    List<String>? zhChars,
   }) {
-    final patterns = match(text, surname);
+    final chars = zhChars ?? splitString(text);
+    final patterns = match(text, surname, zhChars: chars);
     switch (algorithm) {
       case TokenizationAlgorithm.reverseMaxMatch:
         return reverseMaxMatch(patterns);
       case TokenizationAlgorithm.minTokenization:
-        return minTokenization(patterns, stringLength(text));
+        return minTokenization(patterns, chars.length);
       case TokenizationAlgorithm.maxProbability:
-        return maxProbability(patterns, stringLength(text));
+        return maxProbability(patterns, chars.length);
     }
   }
 }

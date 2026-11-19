@@ -77,6 +77,21 @@ void customPinyin(
     _customDict[word] = config[word]!;
   }
 
+  if (words.isNotEmpty) {
+    // Consecutive updates are batched; the rebuild happens before the next
+    // lookup or dictionary build.
+    acTree.setPendingBuild(_rebuildCustomPatterns);
+  }
+
+  if (options?.multiple != null) {
+    _addCustomConfigToDict(config, _customMultipleDict, options!.multiple!);
+  }
+  if (options?.polyphonic != null) {
+    _addCustomConfigToDict(config, _customPolyphonicDict, options!.polyphonic!);
+  }
+}
+
+void _rebuildCustomPatterns() {
   final patterns = _customDict.entries.map((e) => Pattern(
         zh: e.key,
         pinyin: e.value,
@@ -85,14 +100,8 @@ void customPinyin(
         priority: kPriorityCustom,
         dict: _customDictName,
       )).toList();
+  acTree.removeDict(_customDictName);
   acTree.build(patterns);
-
-  if (options?.multiple != null) {
-    _addCustomConfigToDict(config, _customMultipleDict, options!.multiple!);
-  }
-  if (options?.polyphonic != null) {
-    _addCustomConfigToDict(config, _customPolyphonicDict, options!.polyphonic!);
-  }
 }
 
 void _addCustomConfigToDict(
@@ -134,6 +143,7 @@ void clearCustomDict(dynamic dict) {
 
   if (types.contains(CustomDictType.pinyin)) {
     _customDict.clear();
+    acTree.clearPendingBuild();
     acTree.removeDict(_customDictName);
   }
   if (types.contains(CustomDictType.multiple)) {

@@ -6,14 +6,14 @@ import 'package:pinyin_pro_flutter/src/common/segmentit/ac_automaton.dart';
 class _ProbabilityItem {
   double probability;
   int decimal; // exponent: actual value = probability * (1e-300)^decimal
-  List<MatchPattern> patterns;
-  MatchPattern? concatPattern;
+  final MatchPattern? pattern;
+  final int nextIndex;
 
   _ProbabilityItem({
     required this.probability,
     required this.decimal,
-    required this.patterns,
-    this.concatPattern,
+    this.pattern,
+    required this.nextIndex,
   });
 }
 
@@ -50,24 +50,27 @@ int _getPatternDecimal(MatchPattern pattern) {
 List<MatchPattern> maxProbability(
     List<MatchPattern> patterns, int length) {
   final dp = List<_ProbabilityItem?>.filled(length, null);
+  final terminalDP = _ProbabilityItem(
+    probability: 1.0,
+    decimal: 0,
+    nextIndex: length,
+  );
   var patternIndex = patterns.length - 1;
   MatchPattern? pattern =
       patternIndex >= 0 ? patterns[patternIndex] : null;
 
   for (var i = length - 1; i >= 0; i--) {
-    final suffixDP = i + 1 >= length
-        ? _ProbabilityItem(
-            probability: 1.0, decimal: 0, patterns: [])
-        : dp[i + 1];
+    final suffixDP = i + 1 >= length ? terminalDP : dp[i + 1]!;
+    final nextIndex = suffixDP.pattern != null ? i + 1 : suffixDP.nextIndex;
 
     while (pattern != null &&
         pattern.index + pattern.length - 1 == i) {
       final startIndex = pattern.index;
       final curDP = _ProbabilityItem(
-        probability: pattern.probability * (suffixDP?.probability ?? 1.0),
-        decimal: (suffixDP?.decimal ?? 0) + _getPatternDecimal(pattern),
-        patterns: suffixDP?.patterns ?? [],
-        concatPattern: pattern,
+        probability: pattern.probability * suffixDP.probability,
+        decimal: suffixDP.decimal + _getPatternDecimal(pattern),
+        pattern: pattern,
+        nextIndex: nextIndex,
       );
       _checkDecimal(curDP);
       dp[startIndex] =
@@ -77,19 +80,21 @@ List<MatchPattern> maxProbability(
     }
 
     final iDP = _ProbabilityItem(
-      probability: kProbabilityUnknown * (suffixDP?.probability ?? 1.0),
+      probability: kProbabilityUnknown * suffixDP.probability,
       decimal: 0,
-      patterns: suffixDP?.patterns ?? [],
+      nextIndex: nextIndex,
     );
     _checkDecimal(iDP);
     dp[i] = _getMaxProbability(dp[i], iDP);
-
-    if (dp[i]?.concatPattern != null) {
-      dp[i]!.patterns =
-          [...dp[i]!.patterns, dp[i]!.concatPattern!];
-      dp[i]!.concatPattern = null;
-      if (i + 1 < length) dp[i + 1] = null;
-    }
   }
-  return List<MatchPattern>.from(dp[0]?.patterns ?? []).reversed.toList();
+
+  final result = <MatchPattern>[];
+  var index = 0;
+  while (index < length) {
+    final item = dp[index];
+    if (item == null) break;
+    if (item.pattern != null) result.add(item.pattern!);
+    index = item.nextIndex;
+  }
+  return result;
 }
