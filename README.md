@@ -6,6 +6,8 @@ A professional Chinese pinyin conversion library for Dart and Flutter — a full
 
 ---
 
+[![pinyin_pro_flutter on pub.dev](https://pub-dev-stats.vercel.app/card/pinyin_pro_flutter?theme=dark)](https://pub.dev/packages/pinyin_pro_flutter)
+
 ## Features
 
 - Tone marks (symbols or numeric) and tone-free output
