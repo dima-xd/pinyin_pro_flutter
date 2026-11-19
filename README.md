@@ -1,6 +1,6 @@
 # pinyin_pro_flutter
 
-A professional Chinese pinyin conversion library for Flutter/Dart — a full port of [pinyin-pro](https://github.com/zh-lx/pinyin-pro) (TypeScript, v3.28.1).
+A professional Chinese pinyin conversion library for Dart and Flutter — a full port of [pinyin-pro](https://github.com/zh-lx/pinyin-pro) (TypeScript, v3.28.1).
 
 > **Note:** This project was developed with AI assistance.
 
@@ -16,8 +16,28 @@ A professional Chinese pinyin conversion library for Flutter/Dart — a full por
 - HTML ruby markup generation
 - Word segmentation with pinyin
 - Custom dictionaries and overrides
-- Traditional character support
+- Traditional character support (via `addTraditionalDict`)
 - Phonetic components: initial (声母), final (韵母), head, body, tail
+- Pure Dart: works in Flutter apps, Dart CLI tools, and servers
+
+## Requirements
+
+- Dart 3.0+
+- Flutter 3.0+ (optional — the package itself has no Flutter dependency)
+
+## Installation
+
+For a Flutter project:
+
+```bash
+flutter pub add pinyin_pro_flutter
+```
+
+For a pure Dart project:
+
+```bash
+dart pub add pinyin_pro_flutter
+```
 
 ## Quick Start
 
@@ -25,8 +45,9 @@ A professional Chinese pinyin conversion library for Flutter/Dart — a full por
 import 'package:pinyin_pro_flutter/pinyin_pro_flutter.dart';
 
 pinyin('汉语拼音');                        // 'hàn yǔ pīn yīn'
-pinyin('好好学习', options: PinyinOptions(toneType: ToneType.num));  // 'hao3 hao4 xue2 xi2'
-pinyin('汉', options: PinyinOptions(multiple: true));               // 'hàn hán'
+pinyin('好好学习', options: PinyinOptions(toneType: ToneType.num));
+// 'hao3 hao4 xue2 xi2'
+pinyin('好', options: PinyinOptions(multiple: true)); // 'hǎo hào'
 ```
 
 ---
@@ -36,6 +57,14 @@ pinyin('汉', options: PinyinOptions(multiple: true));               // 'hàn h�
 ### `pinyin(word, {options})`
 
 Converts a Chinese string to pinyin.
+
+The return type depends on `options.returnType`:
+
+| `returnType` | Returns |
+|---|---|
+| `PinyinReturnType.string` (default) | `String` |
+| `PinyinReturnType.array` | `List<String>` |
+| `PinyinReturnType.all` | `List<PinyinAllData>` |
 
 ```dart
 // String output (default)
@@ -59,7 +88,7 @@ pinyin('拼音', options: PinyinOptions(pattern: PinyinPattern.initial));
 
 // Final (韵母) only
 pinyin('拼音', options: PinyinOptions(pattern: PinyinPattern.final_));
-// 'in in'
+// 'īn īn'
 
 // First letter
 pinyin('拼音', options: PinyinOptions(pattern: PinyinPattern.first));
@@ -70,12 +99,31 @@ pinyin('曾小贤', options: PinyinOptions(surname: SurnameMode.head));
 // 'zēng xiǎo xián'
 
 // Tone sandhi (变调)
-pinyin('一路顺风', options: PinyinOptions(toneSandhi: true));  // 'yí lù shùn fēng'
+pinyin('一路顺风', options: PinyinOptions(toneSandhi: true));
+// 'yí lù shùn fēng'
 
 // All data per character
 pinyin('好', options: PinyinOptions(returnType: PinyinReturnType.all));
-// [PinyinAllData(origin:'好', pinyin:'hǎo', initial:'h', final_:'ao', ...)]
+// [PinyinAllData(origin: '好', pinyin: 'hǎo', ...)]
 ```
+
+#### Typed helpers
+
+`pinyin()` returns `dynamic` because the result type depends on the options.
+For statically typed code, use the helpers below. Each one forces the
+corresponding return type and ignores `options.returnType`.
+
+```dart
+pinyinString('汉语拼音'); // 'hàn yǔ pīn yīn'
+pinyinArray('汉语');      // ['hàn', 'yǔ']
+pinyinAll('汉').first.pinyin; // 'hàn'
+```
+
+| Helper | Returns |
+|---|---|
+| `pinyinString(word, {options})` | `String` |
+| `pinyinArray(word, {options})` | `List<String>` |
+| `pinyinAll(word, {options})` | `List<PinyinAllData>` |
 
 **`PinyinOptions`**
 
@@ -89,7 +137,10 @@ pinyin('好', options: PinyinOptions(returnType: PinyinReturnType.all));
 | `surname` | `SurnameMode` | `off` | `off`, `head`, `all` |
 | `toneSandhi` | `bool` | `true` | Apply tone sandhi for 一/不 |
 | `nonZh` | `NonZhMode` | `spaced` | `spaced`, `consecutive`, `removed` |
+| `nonZhScope` | `RegExp?` | `null` | Regex scope for non-Chinese processing |
 | `v` | `bool` | `false` | Replace ü with v |
+| `vChar` | `String?` | `null` | Custom replacement character for ü |
+| `initialPattern` | `InitialPattern?` | `null` | `yw` or `standard` handling of y/w |
 | `traditional` | `bool` | `false` | Recognize traditional characters |
 | `segmentit` | `TokenizationAlgorithm` | `maxProbability` | `maxProbability`, `reverseMaxMatch`, `minTokenization` |
 
@@ -100,28 +151,33 @@ pinyin('好', options: PinyinOptions(returnType: PinyinReturnType.all));
 Fuzzy-matches a pinyin query against Chinese text. Returns matched character indices, or `null` if no match.
 
 ```dart
-matchPinyin('中文拼音', 'zwp');     // [0, 1, 2]
-matchPinyin('中文拼音', 'zw');      // [0, 1]
-matchPinyin('中文拼音', 'xyz');     // null
+matchPinyin('中文拼音', 'zwp');  // [0, 1, 2]
+matchPinyin('中文拼音', 'zw');   // [0, 1]
+matchPinyin('中文拼音', 'xyz');  // null
 ```
 
 **`MatchOptions`**
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `precision` | `MatchPrecision` | `first` | `first` (match first letter), `start` (match from start), `full` (full syllable) |
-| `space` | `MatchSpace` | `ignore` | `ignore` or `preserve` spaces in query |
+| `precision` | `MatchPrecision` | `first` | `first`, `start`, `every`, `any` |
+| `continuous` | `bool` | `false` | Require matched indices to be continuous |
+| `space` | `MatchSpace` | `ignore` | `ignore` or `preserve` spaces in the query |
+| `lastPrecision` | `MatchPrecision` | `start` | Precision used for the last character |
+| `insensitive` | `bool` | `true` | Case-insensitive matching |
+| `v` | `bool` | `false` | Treat ü as v in the query |
 
 ---
 
-### `convertPinyin(input, {format, separator})`
+### `convertPinyin(input, {separator, format})`
 
 Converts pinyin between numeric-tone, symbol-tone, and tone-free formats.
+`input` may be a `String` or `List<String>`; the result has the same type.
 
 ```dart
 convertPinyin('pin1 yin1');                                   // 'pīn yīn'
-convertPinyin('pīn yīn', format: ConvertFormat.symbolToNum); // 'pin1 yin1'
-convertPinyin('pīn yīn', format: ConvertFormat.toneNone);    // 'pin yin'
+convertPinyin('pīn yīn', format: ConvertFormat.symbolToNum);  // 'pin1 yin1'
+convertPinyin('pīn yīn', format: ConvertFormat.toneNone);     // 'pin yin'
 convertPinyin(['pin1', 'yin1']);                              // ['pīn', 'yīn']
 ```
 
@@ -133,18 +189,27 @@ Generates HTML with ruby pinyin annotations.
 
 ```dart
 htmlPinyin('汉字');
-// '<span class="py-result-item"><ruby>汉<rp>(</rp><rt>hàn</rt><rp>)</rp></ruby></span>...'
+// '<span class="py-result-item"><ruby><span class="py-chinese-item">汉</span>'
+// '<rp>(</rp><rt class="py-pinyin-item">hàn</rt><rp>)</rp></ruby></span>...'
 ```
 
 **`HtmlOptions`**
 
 | Option | Type | Default | Description |
 |---|---|---|---|
+| `resultClass` | `String` | `'py-result-item'` | Class for the outer span |
+| `chineseClass` | `String` | `'py-chinese-item'` | Class for the Chinese character span |
+| `pinyinClass` | `String` | `'py-pinyin-item'` | Class for the `<rt>` tag |
+| `nonChineseClass` | `String` | `'py-non-chinese-item'` | Class for non-Chinese spans |
+| `wrapNonChinese` | `bool` | `false` | Wrap non-Chinese characters in a span |
+| `customClassMap` | `Map<String, List<String>>` | `{}` | Extra classes keyed by class name, per character |
+| `rp` | `bool` | `true` | Include `<rp>(</rp>` fallback tags |
 | `toneType` | `ToneType` | `symbol` | Tone format |
-| `noClass` | `bool` | `false` | Omit class attributes |
-| `resultClass` | `String` | `'py-result-item'` | Class for each span |
-| `pinyinClass` | `String` | `'py-pinyin-item'` | Class for `<rt>` |
-| `nonZhClass` | `String` | `'py-non-zh-item'` | Class for non-Chinese spans |
+| `toneSandhi` | `bool` | `true` | Apply tone sandhi for 一/不 |
+| `surname` | `SurnameMode` | `off` | Surname matching mode |
+| `traditional` | `bool` | `false` | Recognize traditional characters |
+| `v` | `bool` | `false` | Replace ü with v |
+| `segmentit` | `TokenizationAlgorithm` | `maxProbability` | Tokenization algorithm |
 
 ---
 
@@ -153,30 +218,94 @@ htmlPinyin('汉字');
 Returns all possible readings for each character.
 
 ```dart
-polyphonic('好好学习');
-// [['hǎo', 'hào'], ['hǎo', 'hào'], ['xué'], ['xí']]
+// Default: one string per character
+polyphonic('好好'); // ['hǎo hào', 'hǎo hào']
 
-polyphonic('好好学习', options: PolyphonicOptions(returnType: PolyphonicReturnType.string));
-// ['hǎo hào', 'hǎo hào', 'xué', 'xí']
+// Nested lists
+polyphonic('好', options: PolyphonicOptions(
+  returnType: PolyphonicReturnType.array,
+)); // [['hǎo', 'hào']]
 ```
+
+#### Typed helpers
+
+```dart
+polyphonicString('好好'); // ['hǎo hào', 'hǎo hào']
+polyphonicArray('好');    // [['hǎo', 'hào']]
+polyphonicAll('好').first.first.pinyin; // 'hǎo'
+```
+
+| Helper | Returns |
+|---|---|
+| `polyphonicString(text, {options})` | `List<String>` |
+| `polyphonicArray(text, {options})` | `List<List<String>>` |
+| `polyphonicAll(text, {options})` | `List<List<PolyphonicAllData>>` |
+
+**`PolyphonicOptions`**
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `returnType` | `PolyphonicReturnType` | `string` | `string`, `array`, `all` |
+| `toneType` | `ToneType` | `symbol` | Tone format |
+| `pattern` | `PinyinPattern` | `pinyin` | Phonetic component to return |
+| `nonZh` | `NonZhMode` | `spaced` | How to handle non-Chinese characters |
+| `v` | `bool` | `false` | Replace ü with v |
+| `initialPattern` | `InitialPattern?` | `null` | `yw` or `standard` handling of y/w |
 
 ---
 
 ### `segmentPinyin(word, {options})`
 
-Word-segmented pinyin with configurable output format.
+Word-segmented pinyin. The return type depends on `options.format`.
 
 ```dart
+// Segment items (default)
+segmentPinyin('我是中国人');
+// [SegmentItem(origin: '我', result: 'wǒ'), SegmentItem(origin: '是', result: 'shì'), ...]
+
+// Nested pinyin lists
 segmentPinyin('我是中国人',
     options: SegmentOptions(format: OutputFormat.pinyinArray));
-// [['wǒ'], ['shì'], ['zhōng', 'guó', 'rén']]
-
-segmentPinyin('我是中国人',
-    options: SegmentOptions(format: OutputFormat.allSegment));
-// [SegmentItem(origin:'我', result:'wǒ'), ...]
+// [['wǒ'], ['shì'], ['zhōng'], ['guó'], ['rén']]
 ```
 
 **`OutputFormat` values:** `allSegment`, `allArray`, `allString`, `pinyinSegment`, `pinyinArray`, `pinyinString`, `zhSegment`, `zhArray`, `zhString`
+
+#### Typed helpers
+
+Each helper forces the corresponding `OutputFormat`:
+
+| Helper | `OutputFormat` | Returns |
+|---|---|---|
+| `segmentAllSegment(word, {options})` | `allSegment` | `List<SegmentItem>` |
+| `segmentAllArray(word, {options})` | `allArray` | `List<List<SegmentItem>>` |
+| `segmentAllString(word, {options})` | `allString` | `SegmentItem` |
+| `segmentPinyinSegment(word, {options})` | `pinyinSegment` | `List<String>` |
+| `segmentPinyinArray(word, {options})` | `pinyinArray` | `List<List<String>>` |
+| `segmentPinyinString(word, {options})` | `pinyinString` | `String` |
+| `segmentZhSegment(word, {options})` | `zhSegment` | `List<String>` |
+| `segmentZhArray(word, {options})` | `zhArray` | `List<List<String>>` |
+| `segmentZhString(word, {options})` | `zhString` | `String` |
+
+```dart
+segmentPinyinArray('我是中国人');
+// [['wǒ'], ['shì'], ['zhōng'], ['guó'], ['rén']]
+segmentPinyinString('我是中国人'); // 'wǒ shì zhōng guó rén'
+```
+
+**`SegmentOptions`**
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `toneType` | `ToneType` | `symbol` | Tone format |
+| `surname` | `SurnameMode` | `off` | Surname matching mode |
+| `nonZh` | `NonZhMode` | `spaced` | How to handle non-Chinese characters |
+| `v` | `bool` | `false` | Replace ü with v |
+| `separator` | `String` | `' '` | Separator used by `*String` formats |
+| `toneSandhi` | `bool` | `true` | Apply tone sandhi for 一/不 |
+| `segmentit` | `TokenizationAlgorithm` | `maxProbability` | Tokenization algorithm |
+| `format` | `OutputFormat` | `allSegment` | Output format |
+| `traditional` | `bool` | `false` | Recognize traditional characters |
 
 ---
 
@@ -187,16 +316,19 @@ Overrides pinyin for specific words or characters.
 ```dart
 // Override a word
 customPinyin({'好学': 'hào xué'});
-pinyin('好学生');  // 'hào xué shēng'
+pinyin('好学生'); // 'hào xué shēng'
 
-// Override with multiple readings (single char)
-customPinyin({'好': 'hào'}, options: CustomPinyinOptions(multiple: CustomHandleType.add));
+// Add a reading for a single character
+customPinyin({'好': 'hào'},
+    options: CustomPinyinOptions(multiple: CustomHandleType.add));
 
 // Clear overrides
-clearCustomDict();
-clearCustomDict(CustomDictType.single);
-clearCustomDict(CustomDictType.multiple);
+clearCustomDict(CustomDictType.pinyin);
+clearCustomDict([CustomDictType.multiple, CustomDictType.polyphonic]);
 ```
+
+**`CustomDictType` values:** `pinyin`, `multiple`, `polyphonic`
+**`CustomHandleType` values:** `add`, `replace`
 
 ---
 
@@ -205,28 +337,43 @@ clearCustomDict(CustomDictType.multiple);
 Adds or removes a custom word dictionary for the AC automaton.
 
 ```dart
-addDict({'术语': ['shù yǔ', 2e-5]},
-    options: DictOptions(name: 'custom'));
-pinyin('术语');  // 'shù yǔ'
+addDict({'术语': 'shù yǔ'}, options: DictOptions(name: 'custom'));
+pinyin('术语'); // 'shù yǔ'
+
+addDict({'术语': ['shù yǔ', 2e-5]}, options: DictOptions(name: 'custom'));
 
 removeDict('custom');
 ```
 
 **`DictValue` formats:** `String`, `[String]`, `[String, double]`, `[String, double, String]`
 
-**`DictHandleType`** (for single-char entries): `add`, `replace`, `ignore`
+**`DictHandleType`** (for single-character entries): `add`, `replace`, `ignore`
+
+---
+
+### `addTraditionalDict(dict)`
+
+Registers traditional → simplified character mappings, enabling pinyin recognition for traditional text when `traditional: true` is set.
+
+```dart
+addTraditionalDict({'國': '国', '語': '语'});
+pinyin('中國', options: PinyinOptions(traditional: true)); // 'zhōng guó'
+```
 
 ---
 
 ### Phonetic utilities
 
 ```dart
-getInitialAndFinal('guang');   // (initial: 'g', final_: 'uang')
-getFinalParts('guang');        // (head: 'u', body: 'a', tail: 'ng')
-getNumOfTone('pīn yīn');      // '1 1'
-getPinyinWithoutTone('pīn');  // 'pin'
-getSingleWordPinyin('汉');     // 'hàn'
-getAllPinyin('好');             // ['hǎo', 'hào']
+final parts = getInitialAndFinal('guang');
+parts.initial; // 'g'
+parts.final_;  // 'uang'
+
+getFinalParts('guang');     // (head: 'u', body: 'a', tail: 'ng')
+getNumOfTone('pīn yīn');    // '1 1'
+getPinyinWithoutTone('pīn'); // 'pin'
+getSingleWordPinyin('汉');   // 'hàn'
+getAllPinyin('好');          // ['hǎo', 'hào']
 ```
 
 ---

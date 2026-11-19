@@ -1,3 +1,7 @@
+// The example supports Flutter 3.0+, where `package:flutter/material.dart`
+// is the supported import.
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:pinyin_pro_flutter/pinyin_pro_flutter.dart';
 

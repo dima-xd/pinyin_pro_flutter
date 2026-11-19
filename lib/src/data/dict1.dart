@@ -1,5 +1,5 @@
 // ignore_for_file: lines_longer_than_80_chars
-library pinyin_pro_flutter;
+library;
 
 import 'package:pinyin_pro_flutter/src/data/dict1_raw.dart';
 

@@ -1,5 +1,5 @@
 // ignore_for_file: lines_longer_than_80_chars
-library pinyin_pro_flutter;
+library;
 
 import 'package:pinyin_pro_flutter/src/common/types.dart';
 import 'package:pinyin_pro_flutter/src/common/utils.dart';
@@ -67,6 +67,24 @@ class PolyphonicOptions {
     this.v = false,
     this.initialPattern,
   });
+
+  PolyphonicOptions copyWith({
+    PolyphonicReturnType? returnType,
+    ToneType? toneType,
+    PinyinPattern? pattern,
+    NonZhMode? nonZh,
+    bool? v,
+    InitialPattern? initialPattern,
+  }) {
+    return PolyphonicOptions(
+      returnType: returnType ?? this.returnType,
+      toneType: toneType ?? this.toneType,
+      pattern: pattern ?? this.pattern,
+      nonZh: nonZh ?? this.nonZh,
+      v: v ?? this.v,
+      initialPattern: initialPattern ?? this.initialPattern,
+    );
+  }
 }
 
 /// Returns all possible pinyin readings for each character in [text].
@@ -85,24 +103,10 @@ dynamic polyphonic(String text, {PolyphonicOptions options = const PolyphonicOpt
 
   var opts = options;
   if (opts.returnType == PolyphonicReturnType.all) {
-    opts = PolyphonicOptions(
-      returnType: opts.returnType,
-      toneType: opts.toneType,
-      pattern: PinyinPattern.pinyin,
-      nonZh: opts.nonZh,
-      v: opts.v,
-      initialPattern: opts.initialPattern,
-    );
+    opts = opts.copyWith(pattern: PinyinPattern.pinyin);
   }
   if (opts.pattern == PinyinPattern.num) {
-    opts = PolyphonicOptions(
-      returnType: opts.returnType,
-      toneType: ToneType.none,
-      pattern: opts.pattern,
-      nonZh: opts.nonZh,
-      v: opts.v,
-      initialPattern: opts.initialPattern,
-    );
+    opts = opts.copyWith(toneType: ToneType.none);
   }
 
   var list = _getPolyphonicList(text);
@@ -127,6 +131,55 @@ dynamic polyphonic(String text, {PolyphonicOptions options = const PolyphonicOpt
   }
 
   return doubleList.map((inner) => _handleType(inner, opts)).toList();
+}
+
+/// Returns one space-separated readings string per character in [text].
+///
+/// Always uses [PolyphonicReturnType.string], regardless of
+/// `options.returnType`.
+///
+/// ```dart
+/// polyphonicString('好好'); // ['hǎo hào', 'hǎo hào']
+/// ```
+List<String> polyphonicString(String text,
+    {PolyphonicOptions options = const PolyphonicOptions()}) {
+  return (polyphonic(
+    text,
+    options: options.copyWith(returnType: PolyphonicReturnType.string),
+  ) as List)
+      .cast<String>();
+}
+
+/// Returns the readings of each character in [text] as nested lists.
+///
+/// Always uses [PolyphonicReturnType.array], regardless of
+/// `options.returnType`.
+///
+/// ```dart
+/// polyphonicArray('好'); // [['hǎo', 'hào']]
+/// ```
+List<List<String>> polyphonicArray(String text,
+    {PolyphonicOptions options = const PolyphonicOptions()}) {
+  return (polyphonic(
+    text,
+    options: options.copyWith(returnType: PolyphonicReturnType.array),
+  ) as List)
+      .map((inner) => List<String>.from(inner as List))
+      .toList();
+}
+
+/// Returns the readings of each character in [text] as [PolyphonicAllData].
+///
+/// Always uses [PolyphonicReturnType.all], regardless of
+/// `options.returnType`.
+List<List<PolyphonicAllData>> polyphonicAll(String text,
+    {PolyphonicOptions options = const PolyphonicOptions()}) {
+  return (polyphonic(
+    text,
+    options: options.copyWith(returnType: PolyphonicReturnType.all),
+  ) as List)
+      .map((inner) => List<PolyphonicAllData>.from(inner as List))
+      .toList();
 }
 
 List<SingleWordResult> _getPolyphonicList(String text) {

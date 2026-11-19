@@ -1,4 +1,4 @@
-library pinyin_pro_flutter;
+library;
 
 /// Splits a string into a list of characters, treating surrogate pairs
 /// (emoji, supplementary CJK) as single units.

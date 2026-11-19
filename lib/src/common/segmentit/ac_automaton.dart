@@ -1,5 +1,5 @@
 // ignore_for_file: lines_longer_than_80_chars
-library pinyin_pro_flutter;
+library;
 
 import 'package:pinyin_pro_flutter/src/common/constants.dart';
 import 'package:pinyin_pro_flutter/src/common/types.dart';
@@ -29,7 +29,7 @@ class Pattern {
   int priority;
   String dict;
   String? pos;
-  _TrieNode? node;
+  TrieNode? node;
 
   Pattern({
     required this.zh,
@@ -72,15 +72,15 @@ class MatchPattern extends Pattern {
       );
 }
 
-class _TrieNode {
-  final Map<String, _TrieNode> children = {};
-  _TrieNode? fail;
+class TrieNode {
+  final Map<String, TrieNode> children = {};
+  TrieNode? fail;
   final List<Pattern> patterns = [];
   final String prefix;
-  final _TrieNode? parent;
+  final TrieNode? parent;
   final String key;
 
-  _TrieNode({
+  TrieNode({
     required this.parent,
     this.prefix = '',
     this.key = '',
@@ -89,10 +89,10 @@ class _TrieNode {
 
 /// Aho-Corasick automaton for efficient multi-pattern matching.
 class AcAutomaton {
-  final _TrieNode _root = _TrieNode(parent: null);
+  final TrieNode _root = TrieNode(parent: null);
   final Map<String, Set<Pattern>> _dictMap = {};
   // queues[depth] = list of nodes at that depth (for BFS fail pointer build)
-  final List<List<_TrieNode>> _queues = [];
+  final List<List<TrieNode>> _queues = [];
 
   /// Builds the trie and fail pointers from [patternList].
   void build(List<Pattern> patternList) {
@@ -108,7 +108,7 @@ class AcAutomaton {
         final c = chars[i];
         if (!cur.children.containsKey(c)) {
           final prefix = chars.sublist(0, i).join('');
-          final node = _TrieNode(parent: cur, prefix: prefix, key: c);
+          final node = TrieNode(parent: cur, prefix: prefix, key: c);
           cur.children[c] = node;
           _addNodeToQueues(node);
         }
@@ -121,7 +121,7 @@ class AcAutomaton {
   }
 
   void _buildFailPointers() {
-    final queue = <_TrieNode>[];
+    final queue = <TrieNode>[];
     for (final q in _queues) {
       queue.addAll(q);
     }
@@ -148,7 +148,7 @@ class AcAutomaton {
     _dictMap.putIfAbsent(pattern.dict, () => {}).add(pattern);
   }
 
-  void _addNodeToQueues(_TrieNode node) {
+  void _addNodeToQueues(TrieNode node) {
     final depth = stringLength(node.prefix);
     while (_queues.length <= depth) {
       _queues.add([]);

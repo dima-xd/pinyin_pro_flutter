@@ -21,7 +21,7 @@
 /// // HTML ruby markup
 /// htmlPinyin('汉字'); // '<span class="py-result-item">...'
 /// ```
-library pinyin_pro_flutter;
+library;
 
 // Types
 export 'src/common/types.dart'
@@ -41,7 +41,13 @@ export 'src/common/types.dart'
 export 'src/common/segmentit/ac_automaton.dart' show TokenizationAlgorithm;
 
 // Core API
-export 'src/core/pinyin/pinyin.dart' show PinyinOptions, pinyin;
+export 'src/core/pinyin/pinyin.dart'
+    show
+        PinyinOptions,
+        pinyin,
+        pinyinString,
+        pinyinArray,
+        pinyinAll;
 export 'src/core/pinyin/handle.dart'
     show
         getInitialAndFinal,
@@ -58,9 +64,25 @@ export 'src/core/polyphonic.dart'
         PolyphonicReturnType,
         PolyphonicAllData,
         PolyphonicOptions,
-        polyphonic;
+        polyphonic,
+        polyphonicString,
+        polyphonicArray,
+        polyphonicAll;
 export 'src/core/custom.dart'
     show CustomHandleType, CustomPinyinOptions, CustomDictType, customPinyin, clearCustomDict;
 export 'src/core/dict.dart' show DictHandleType, DictOptions, addDict, removeDict;
-export 'src/core/segment.dart' show OutputFormat, SegmentOptions, segmentPinyin;
+export 'src/core/segment.dart'
+    show
+        OutputFormat,
+        SegmentOptions,
+        segmentPinyin,
+        segmentAllSegment,
+        segmentAllArray,
+        segmentAllString,
+        segmentPinyinSegment,
+        segmentPinyinArray,
+        segmentPinyinString,
+        segmentZhSegment,
+        segmentZhArray,
+        segmentZhString;
 export 'src/core/traditional.dart' show addTraditionalDict, getTraditionalDict;

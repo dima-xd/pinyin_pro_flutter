@@ -1,4 +1,4 @@
-library pinyin_pro_flutter;
+library;
 
 /// Probability constants for AC automaton pattern scoring.
 const double kProbabilityUnknown = 1e-13;

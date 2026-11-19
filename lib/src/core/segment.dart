@@ -1,5 +1,5 @@
 // ignore_for_file: lines_longer_than_80_chars
-library pinyin_pro_flutter;
+library;
 
 import 'package:pinyin_pro_flutter/src/common/segmentit/ac_automaton.dart';
 import 'package:pinyin_pro_flutter/src/common/types.dart';
@@ -61,6 +61,30 @@ class SegmentOptions {
     this.format = OutputFormat.allSegment,
     this.traditional = false,
   });
+
+  SegmentOptions copyWith({
+    ToneType? toneType,
+    SurnameMode? surname,
+    NonZhMode? nonZh,
+    bool? v,
+    String? separator,
+    bool? toneSandhi,
+    TokenizationAlgorithm? segmentit,
+    OutputFormat? format,
+    bool? traditional,
+  }) {
+    return SegmentOptions(
+      toneType: toneType ?? this.toneType,
+      surname: surname ?? this.surname,
+      nonZh: nonZh ?? this.nonZh,
+      v: v ?? this.v,
+      separator: separator ?? this.separator,
+      toneSandhi: toneSandhi ?? this.toneSandhi,
+      segmentit: segmentit ?? this.segmentit,
+      format: format ?? this.format,
+      traditional: traditional ?? this.traditional,
+    );
+  }
 }
 
 class _OriginSegment {
@@ -92,11 +116,11 @@ dynamic segmentPinyin(String word, {SegmentOptions options = const SegmentOption
   if (word.isEmpty) return word;
 
   final surname = options.surname;
-  final _list = List<SingleWordResult?>.filled(stringLength(word), null);
+  final listBuffer = List<SingleWordResult?>.filled(stringLength(word), null);
 
   var (:list, :matches) = getPinyin(
     word,
-    _list,
+    listBuffer,
     surname,
     options.segmentit,
     traditional: options.traditional,
@@ -225,4 +249,120 @@ dynamic _middlewareOutputFormat(
           .map((s) => s.items.map((i) => i.origin).join())
           .join(sep);
   }
+}
+
+/// Segments [word] and returns one [SegmentItem] per segment.
+///
+/// Equivalent to [segmentPinyin] with [OutputFormat.allSegment].
+List<SegmentItem> segmentAllSegment(String word,
+    {SegmentOptions options = const SegmentOptions()}) {
+  if (word.isEmpty) return <SegmentItem>[];
+  return (segmentPinyin(
+    word,
+    options: options.copyWith(format: OutputFormat.allSegment),
+  ) as List)
+      .cast<SegmentItem>();
+}
+
+/// Segments [word] and returns nested [SegmentItem] lists.
+///
+/// Equivalent to [segmentPinyin] with [OutputFormat.allArray].
+List<List<SegmentItem>> segmentAllArray(String word,
+    {SegmentOptions options = const SegmentOptions()}) {
+  if (word.isEmpty) return <List<SegmentItem>>[];
+  return (segmentPinyin(
+    word,
+    options: options.copyWith(format: OutputFormat.allArray),
+  ) as List)
+      .map((inner) => List<SegmentItem>.from(inner as List))
+      .toList();
+}
+
+/// Segments [word] and returns a single [SegmentItem].
+///
+/// Equivalent to [segmentPinyin] with [OutputFormat.allString].
+SegmentItem segmentAllString(String word,
+    {SegmentOptions options = const SegmentOptions()}) {
+  if (word.isEmpty) return const SegmentItem(origin: '', result: '');
+  return segmentPinyin(
+    word,
+    options: options.copyWith(format: OutputFormat.allString),
+  ) as SegmentItem;
+}
+
+/// Segments [word] and returns pinyin for each segment.
+///
+/// Equivalent to [segmentPinyin] with [OutputFormat.pinyinSegment].
+List<String> segmentPinyinSegment(String word,
+    {SegmentOptions options = const SegmentOptions()}) {
+  if (word.isEmpty) return <String>[];
+  return (segmentPinyin(
+    word,
+    options: options.copyWith(format: OutputFormat.pinyinSegment),
+  ) as List)
+      .cast<String>();
+}
+
+/// Segments [word] and returns nested pinyin lists.
+///
+/// Equivalent to [segmentPinyin] with [OutputFormat.pinyinArray].
+List<List<String>> segmentPinyinArray(String word,
+    {SegmentOptions options = const SegmentOptions()}) {
+  if (word.isEmpty) return <List<String>>[];
+  return (segmentPinyin(
+    word,
+    options: options.copyWith(format: OutputFormat.pinyinArray),
+  ) as List)
+      .map((inner) => List<String>.from(inner as List))
+      .toList();
+}
+
+/// Segments [word] and returns a single pinyin string joined by
+/// [SegmentOptions.separator] (a space by default).
+///
+/// Equivalent to [segmentPinyin] with [OutputFormat.pinyinString].
+String segmentPinyinString(String word,
+    {SegmentOptions options = const SegmentOptions()}) {
+  return segmentPinyin(
+    word,
+    options: options.copyWith(format: OutputFormat.pinyinString),
+  ) as String;
+}
+
+/// Segments [word] and returns the original text of each segment.
+///
+/// Equivalent to [segmentPinyin] with [OutputFormat.zhSegment].
+List<String> segmentZhSegment(String word,
+    {SegmentOptions options = const SegmentOptions()}) {
+  if (word.isEmpty) return <String>[];
+  return (segmentPinyin(
+    word,
+    options: options.copyWith(format: OutputFormat.zhSegment),
+  ) as List)
+      .cast<String>();
+}
+
+/// Segments [word] and returns nested original-text lists.
+///
+/// Equivalent to [segmentPinyin] with [OutputFormat.zhArray].
+List<List<String>> segmentZhArray(String word,
+    {SegmentOptions options = const SegmentOptions()}) {
+  if (word.isEmpty) return <List<String>>[];
+  return (segmentPinyin(
+    word,
+    options: options.copyWith(format: OutputFormat.zhArray),
+  ) as List)
+      .map((inner) => List<String>.from(inner as List))
+      .toList();
+}
+
+/// Segments [word] and returns the original text as a single string.
+///
+/// Equivalent to [segmentPinyin] with [OutputFormat.zhString].
+String segmentZhString(String word,
+    {SegmentOptions options = const SegmentOptions()}) {
+  return segmentPinyin(
+    word,
+    options: options.copyWith(format: OutputFormat.zhString),
+  ) as String;
 }

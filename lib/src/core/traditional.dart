@@ -1,4 +1,4 @@
-library pinyin_pro_flutter;
+library;
 
 /// Sparse list mapping char code → simplified character string.
 final List<String?> _traditionalDict = [];

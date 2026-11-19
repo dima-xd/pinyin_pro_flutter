@@ -1,7 +1,7 @@
 // AUTO-GENERATED - do not edit manually.
 // Source: pinyin-pro/lib/data/dict1-pinyin.ts
 // ignore_for_file: lines_longer_than_80_chars, constant_identifier_names
-library pinyin_pro_flutter;
+library;
 
 /// Single-character to pinyin mapping.
 /// Values are space-separated pinyin alternatives (first = most common).

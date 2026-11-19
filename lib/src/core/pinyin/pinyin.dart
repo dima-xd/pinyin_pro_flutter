@@ -1,5 +1,5 @@
 // ignore_for_file: lines_longer_than_80_chars
-library pinyin_pro_flutter;
+library;
 
 import 'package:pinyin_pro_flutter/src/common/segmentit/ac_automaton.dart';
 import 'package:pinyin_pro_flutter/src/common/types.dart';
@@ -141,11 +141,11 @@ dynamic pinyin(String word, {PinyinOptions options = const PinyinOptions()}) {
     opts = opts.copyWith(toneType: ToneType.none);
   }
 
-  final _list = List<SingleWordResult?>.filled(stringLength(word), null);
+  final listBuffer = List<SingleWordResult?>.filled(stringLength(word), null);
 
   var (:list, :matches) = getPinyin(
     word,
-    _list,
+    listBuffer,
     opts.surname,
     opts.segmentit,
     traditional: opts.traditional,
@@ -164,4 +164,55 @@ dynamic pinyin(String word, {PinyinOptions options = const PinyinOptions()}) {
   middlewareV(list, opts);
 
   return middlewareType(list, opts, word);
+}
+
+/// Converts [word] to a pinyin [String] joined by
+/// [PinyinOptions.separator] (a space by default).
+///
+/// Always uses [PinyinReturnType.string], regardless of
+/// `options.returnType`.
+///
+/// ```dart
+/// pinyinString('汉语拼音'); // 'hàn yǔ pīn yīn'
+/// ```
+String pinyinString(String word,
+    {PinyinOptions options = const PinyinOptions()}) {
+  return pinyin(
+    word,
+    options: options.copyWith(returnType: PinyinReturnType.string),
+  ) as String;
+}
+
+/// Converts [word] to a list of pinyin syllables.
+///
+/// Always uses [PinyinReturnType.array], regardless of
+/// `options.returnType`.
+///
+/// ```dart
+/// pinyinArray('汉语'); // ['hàn', 'yǔ']
+/// ```
+List<String> pinyinArray(String word,
+    {PinyinOptions options = const PinyinOptions()}) {
+  return (pinyin(
+    word,
+    options: options.copyWith(returnType: PinyinReturnType.array),
+  ) as List)
+      .cast<String>();
+}
+
+/// Converts [word] to a list of [PinyinAllData] objects.
+///
+/// Always uses [PinyinReturnType.all], regardless of
+/// `options.returnType`.
+///
+/// ```dart
+/// pinyinAll('汉').first.pinyin; // 'hàn'
+/// ```
+List<PinyinAllData> pinyinAll(String word,
+    {PinyinOptions options = const PinyinOptions()}) {
+  return (pinyin(
+    word,
+    options: options.copyWith(returnType: PinyinReturnType.all),
+  ) as List)
+      .cast<PinyinAllData>();
 }

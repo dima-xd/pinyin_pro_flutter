@@ -1,7 +1,7 @@
 // AUTO-GENERATED - do not edit manually.
 // Source: pinyin-pro/lib/data/dict3.ts
 // ignore_for_file: lines_longer_than_80_chars, constant_identifier_names
-library pinyin_pro_flutter;
+library;
 
 import 'package:pinyin_pro_flutter/src/common/constants.dart';
 import 'package:pinyin_pro_flutter/src/common/segmentit/ac_automaton.dart';

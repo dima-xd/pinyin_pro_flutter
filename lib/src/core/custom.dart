@@ -1,5 +1,5 @@
 // ignore_for_file: lines_longer_than_80_chars
-library pinyin_pro_flutter;
+library;
 
 import 'package:pinyin_pro_flutter/src/common/constants.dart';
 import 'package:pinyin_pro_flutter/src/common/segmentit/ac_automaton.dart';
@@ -10,12 +10,12 @@ import 'package:pinyin_pro_flutter/src/data/dict1.dart';
 const _customDictName = 'custom';
 
 final _customDict = <String, String>{};
-final _customMultipleDict = _FastDict();
-final _customPolyphonicDict = _FastDict();
+final _customMultipleDict = CustomFastDict();
+final _customPolyphonicDict = CustomFastDict();
 
 /// Lightweight dictionary that uses a List index for single-codeunit keys
 /// and a Map for multi-character keys.
-class _FastDict {
+class CustomFastDict {
   final _byCode = <int, String>{};
   final _byWord = <String, String>{};
 
@@ -97,7 +97,7 @@ void customPinyin(
 
 void _addCustomConfigToDict(
   Map<String, String> config,
-  _FastDict target,
+  CustomFastDict target,
   CustomHandleType handleType,
 ) {
   config.forEach((word, pinyins) {
@@ -145,7 +145,7 @@ void clearCustomDict(dynamic dict) {
 }
 
 /// Returns the custom multiple-readings dictionary.
-_FastDict getCustomMultipleDict() => _customMultipleDict;
+CustomFastDict getCustomMultipleDict() => _customMultipleDict;
 
 /// Returns the custom polyphonic dictionary.
-_FastDict getCustomPolyphonicDict() => _customPolyphonicDict;
+CustomFastDict getCustomPolyphonicDict() => _customPolyphonicDict;

@@ -1,4 +1,4 @@
-library pinyin_pro_flutter;
+library;
 
 import 'package:pinyin_pro_flutter/src/common/constants.dart';
 import 'package:pinyin_pro_flutter/src/common/segmentit/ac_automaton.dart';

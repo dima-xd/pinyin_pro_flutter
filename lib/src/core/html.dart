@@ -1,5 +1,5 @@
 // ignore_for_file: lines_longer_than_80_chars
-library pinyin_pro_flutter;
+library;
 
 import 'package:pinyin_pro_flutter/src/common/segmentit/ac_automaton.dart';
 import 'package:pinyin_pro_flutter/src/common/types.dart';
@@ -61,10 +61,9 @@ class HtmlOptions {
 /// // '<span class="py-result-item"><ruby>...'
 /// ```
 String htmlPinyin(String text, {HtmlOptions options = const HtmlOptions()}) {
-  final pinyinArray = (pinyin(
+  final pinyinArray = pinyinAll(
     text,
     options: PinyinOptions(
-      returnType: PinyinReturnType.all,
       toneType: options.toneType,
       toneSandhi: options.toneSandhi,
       surname: options.surname,
@@ -72,8 +71,7 @@ String htmlPinyin(String text, {HtmlOptions options = const HtmlOptions()}) {
       v: options.v,
       segmentit: options.segmentit,
     ),
-  ) as List)
-      .cast<PinyinAllData>();
+  );
 
   final buffer = StringBuffer();
   for (final item in pinyinArray) {
